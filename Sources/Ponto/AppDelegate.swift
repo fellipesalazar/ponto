@@ -35,11 +35,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.setActivationPolicy(.accessory)
         }
 
-        // ⌃⌥⌘P bate ou confirma. ⌃⌥⌘M abre o painel.
-        HotKeyCenter.shared.add(keyCode: kVK_ANSI_P) { [weak self] in
+        // Atalhos globais: um bate ou confirma, o outro abre o painel.
+        HotKeyCenter.shared.setHandler(.punch) { [weak self] in
             self?.engine.primaryAction()
         }
-        HotKeyCenter.shared.add(keyCode: kVK_ANSI_M) { [weak self] in
+        HotKeyCenter.shared.setHandler(.menu) { [weak self] in
             self?.statusBar.openMenu()
         }
 
@@ -144,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func sync() {
-        HotKeyCenter.shared.setEnabled(Prefs.hotkeysOn)
+        HotKeyCenter.shared.configure(enabled: Prefs.hotkeysOn, punch: Prefs.hotkeyPunch, menu: Prefs.hotkeyMenu)
         statusBar.refresh()
 
         let wantLock = engine.lockKind != nil

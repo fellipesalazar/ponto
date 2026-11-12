@@ -95,7 +95,7 @@ struct ConfirmView: View {
             Button {
                 engine.confirmPunch()
             } label: {
-                KeyLabel(title: "Bati", key: "⌃⌥⌘P", prominent: true)
+                KeyLabel(title: "Bati", key: Prefs.punchKeyLabel, prominent: true)
             }
             .buttonStyle(.borderedProminent)
         }
@@ -221,7 +221,7 @@ struct NoticeView: View {
                 Button {
                     engine.startPunch()
                 } label: {
-                    KeyLabel(title: "Bater agora", key: "⌃⌥⌘P", prominent: true)
+                    KeyLabel(title: "Bater agora", key: Prefs.punchKeyLabel, prominent: true)
                 }
                 .buttonStyle(.borderedProminent)
 

@@ -495,10 +495,20 @@ struct AtalhosPane: View {
 
     var body: some View {
         Form {
-            Section("Em qualquer lugar") {
+            Section {
                 Toggle("Usar atalhos globais", isOn: $hotkeysOn)
-                row("Bater a próxima marcação, ou confirmar que bateu", "⌃⌥⌘P")
-                row("Abrir o painel do Ponto", "⌃⌥⌘M")
+                LabeledContent("Bater a próxima marcação, ou confirmar que bateu") {
+                    ShortcutRecorder(slot: .punch)
+                }
+                .disabled(!hotkeysOn)
+                LabeledContent("Abrir o painel do Ponto") {
+                    ShortcutRecorder(slot: .menu)
+                }
+                .disabled(!hotkeysOn)
+            } header: {
+                Text("Em qualquer lugar")
+            } footer: {
+                Text("Pra trocar, clique no atalho e aperte a combinação nova. Ela precisa ter ⌘, ⌥ ou ⌃, senão dispararia enquanto você digita. Esc cancela.")
             }
 
             Section("Com a tela travada") {
@@ -518,5 +528,87 @@ struct AtalhosPane: View {
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundColor(.secondary)
         }
+    }
+}
+
+/// Botão que mostra o atalho atual. Clicou, ele espera você apertar o novo.
+struct ShortcutRecorder: View {
+    let slot: HotKeyCenter.Slot
+
+    @State private var label = ""
+    @State private var recording = false
+    @State private var monitor: Any?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button {
+                if recording {
+                    stop()
+                } else {
+                    start()
+                }
+            } label: {
+                Text(verbatim: recording ? "Aperte o atalho…" : label)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .frame(minWidth: 110)
+            }
+
+            Button {
+                save(slot == .punch ? HotKey.punchDefault : HotKey.menuDefault)
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.secondary)
+        }
+        .onAppear {
+            label = current.label
+        }
+        .onDisappear {
+            stop()
+        }
+    }
+
+    private var current: HotKey {
+        slot == .punch ? Prefs.hotkeyPunch : Prefs.hotkeyMenu
+    }
+
+    private func start() {
+        recording = true
+        // Solta os atalhos atuais pra eles não dispararem durante a gravação.
+        HotKeyCenter.shared.suspended = true
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            if event.keyCode == 53 { // Esc
+                stop()
+                return nil
+            }
+            if let key = HotKey.from(event) {
+                save(key)
+                stop()
+            } else {
+                NSSound.beep()
+            }
+            return nil
+        }
+    }
+
+    private func stop() {
+        if let m = monitor {
+            NSEvent.removeMonitor(m)
+            monitor = nil
+        }
+        if recording {
+            recording = false
+            HotKeyCenter.shared.suspended = false
+        }
+    }
+
+    private func save(_ key: HotKey) {
+        if slot == .punch {
+            Prefs.hotkeyPunch = key
+        } else {
+            Prefs.hotkeyMenu = key
+        }
+        label = key.label
     }
 }

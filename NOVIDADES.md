@@ -1,6 +1,2 @@
-- O Ponto agora avisa quando tem versão nova e atualiza sozinho, se você quiser.
-- Instalador de verdade: baixe o `Ponto.pkg` e dê dois cliques.
-- Alerta do tipo que você escolher: travar a tela ou só um aviso no canto.
-- Em chamada, a trava vira um aviso discreto e só volta quando a chamada acaba.
-- Folgas e feriados marcados nos Ajustes.
-- Ajustes com barra lateral, e ícone no Dock enquanto estão abertos.
+- Atalhos mais simples: ⌃⌥P bate ou confirma, ⌃⌥M abre o painel.
+- Você escolhe seus próprios atalhos em Ajustes > Atalhos: clique no atalho e aperte a combinação nova.

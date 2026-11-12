@@ -26,7 +26,7 @@ Não precisa fazer nada. O Ponto procura versão nova sozinho e pergunta se voc�
 
 Em chamada (microfone em uso), a trava vira um aviso discreto no canto e só volta quando a chamada acaba.
 
-Fora do padrão (entrou mais cedo, voltou antes, saiu mais cedo), use o menu do ícone ou o atalho ⌃⌥⌘P.
+Fora do padrão (entrou mais cedo, voltou antes, saiu mais cedo), use o menu do ícone ou o atalho ⌃⌥P.
 
 ## Atalhos
 
@@ -34,8 +34,10 @@ Em qualquer lugar:
 
 | Atalho | O que faz |
 | --- | --- |
-| ⌃⌥⌘P | Bate a próxima marcação, ou confirma que bateu |
-| ⌃⌥⌘M | Abre o painel do Ponto |
+| ⌃⌥P | Bate a próxima marcação, ou confirma que bateu |
+| ⌃⌥M | Abre o painel do Ponto |
+
+Dá pra trocar os dois em Ajustes > Atalhos.
 
 Com a tela travada:
 

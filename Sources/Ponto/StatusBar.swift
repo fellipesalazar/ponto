@@ -86,13 +86,11 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         if let waiting = engine.awaitingConfirm {
             let c = add("Confirmar: bati \(waiting.objeto)", #selector(primary))
-            c.keyEquivalent = "p"
-            c.keyEquivalentModifierMask = [.control, .option, .command]
+            showShortcut(on: c)
             add("Ainda não bati", #selector(cancelConfirm))
         } else if let next = record.nextKind {
             let b = add("Bater \(next.objeto)", #selector(primary))
-            b.keyEquivalent = "p"
-            b.keyEquivalentModifierMask = [.control, .option, .command]
+            showShortcut(on: b)
             add("Já bati \(next.objeto)", #selector(markDone))
             if next == .saidaAlmoco {
                 add("Encerrar o dia agora", #selector(endDay))
@@ -133,6 +131,15 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         let q = add("Sair do Ponto", #selector(quit))
         q.keyEquivalent = "q"
         q.keyEquivalentModifierMask = [.command]
+    }
+
+    /// Mostra o atalho de bater ao lado do item, quando ele é uma letra.
+    private func showShortcut(on menuItem: NSMenuItem) {
+        guard Prefs.hotkeysOn else { return }
+        let key = Prefs.hotkeyPunch
+        guard !key.char.isEmpty else { return }
+        menuItem.keyEquivalent = key.char
+        menuItem.keyEquivalentModifierMask = key.menuModifiers
     }
 
     @discardableResult
