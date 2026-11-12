@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import ServiceManagement
+import UniformTypeIdentifiers
 
 // Janela de Ajustes, no formato padrão do macOS (abas na barra de ferramentas).
 
@@ -389,6 +390,7 @@ struct AlertasPane: View {
     @AppStorage(Prefs.Key.confirmSeconds) private var confirmSeconds = 120
     @AppStorage(Prefs.Key.soundOn) private var soundOn = true
     @AppStorage(Prefs.Key.soundName) private var soundName = "Glass"
+    @AppStorage(Prefs.Key.soundFileLabel) private var customLabel = ""
     @AppStorage(Prefs.Key.soundVolume) private var volume = 0.8
     @AppStorage(Prefs.Key.soundRepeat) private var soundRepeat = true
     @AppStorage(Prefs.Key.soundRepeatSeconds) private var repeatSeconds = 30
@@ -434,9 +436,19 @@ struct AlertasPane: View {
                     ForEach(sounds, id: \.self) { name in
                         Text(name).tag(name)
                     }
+                    if !customLabel.isEmpty {
+                        Text(verbatim: "Seu arquivo: " + customLabel).tag(Alarm.customTag)
+                    }
                 }
                 .onChange(of: soundName) { name in
                     Alarm.play(name)
+                }
+                .disabled(!soundOn)
+
+                LabeledContent("Som personalizado") {
+                    Button("Escolher arquivo…") {
+                        chooseFile()
+                    }
                 }
                 .disabled(!soundOn)
 
@@ -463,6 +475,27 @@ struct AlertasPane: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// Abre a janela do sistema pra escolher um áudio e passa a usar ele no alerta.
+    private func chooseFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.prompt = "Escolher"
+        panel.message = "Escolha um áudio pro alerta: MP3, M4A, WAV ou AIFF."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        if Alarm.importCustom(from: url) {
+            Alarm.play()
+        } else {
+            let alert = NSAlert()
+            alert.messageText = "Não consegui usar esse arquivo"
+            alert.informativeText = "O Mac não conseguiu tocar esse áudio. Tente um MP3, M4A, WAV ou AIFF."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
     }
 }
 

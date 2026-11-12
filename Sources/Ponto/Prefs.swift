@@ -20,6 +20,8 @@ enum Prefs {
 
         static let soundOn = "soundOn"
         static let soundName = "soundName"
+        static let soundFile = "soundFile"
+        static let soundFileLabel = "soundFileLabel"
         static let soundVolume = "soundVolume"
         static let soundRepeat = "soundRepeat"
         static let soundRepeatSeconds = "soundRepeatSeconds"

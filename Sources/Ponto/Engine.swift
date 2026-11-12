@@ -4,15 +4,119 @@ import Combine
 // O motor: guarda o dia, decide quando travar e executa as ações.
 
 enum Alarm {
-    static func play(_ name: String? = nil) {
-        let n = name ?? Prefs.soundName
-        guard let s = NSSound(named: NSSound.Name(n)) else {
+    /// Valor guardado em "Som" quando o alerta usa um arquivo seu.
+    static let customTag = "__arquivo__"
+
+    private static var alertSound: NSSound?
+    private static var previewSound: NSSound?
+    private static var previewToken = 0
+
+    // MARK: Alerta
+
+    /// Toca o som do alerta. Se ele ainda estiver tocando (uma música longa), deixa seguir.
+    static func playAlert() {
+        if let playing = alertSound, playing.isPlaying { return }
+        guard let s = chosenSound() else {
             NSSound.beep()
             return
         }
         s.stop()
         s.volume = Float(Prefs.soundVolume)
         s.play()
+        alertSound = s
+    }
+
+    /// Para o som do alerta. Chamado quando você responde.
+    static func stopAlert() {
+        alertSound?.stop()
+        alertSound = nil
+    }
+
+    // MARK: Sons curtos e prévia
+
+    /// Toca um som do sistema pelo nome, ou o som escolhido pro alerta.
+    /// Serve pra confirmação e pra prévia nos ajustes, e para sozinho depois de alguns segundos.
+    static func play(_ name: String? = nil) {
+        previewSound?.stop()
+
+        var sound: NSSound? = nil
+        if let name = name, name != customTag {
+            sound = NSSound(named: NSSound.Name(name))
+        } else {
+            sound = chosenSound()
+        }
+        guard let s = sound else {
+            NSSound.beep()
+            return
+        }
+        s.stop()
+        s.volume = Float(Prefs.soundVolume)
+        s.play()
+        previewSound = s
+
+        previewToken += 1
+        let token = previewToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+            if token == previewToken {
+                previewSound?.stop()
+                previewSound = nil
+            }
+        }
+    }
+
+    /// O som escolhido nos ajustes: o seu arquivo, ou um som do sistema.
+    private static func chosenSound() -> NSSound? {
+        if Prefs.soundName == customTag {
+            if let url = customFileURL, let s = NSSound(contentsOf: url, byReference: true) {
+                return s
+            }
+            // O arquivo sumiu: usa o padrão em vez de ficar mudo.
+            return NSSound(named: NSSound.Name("Glass"))
+        }
+        return NSSound(named: NSSound.Name(Prefs.soundName))
+    }
+
+    // MARK: Arquivo personalizado
+
+    private static var soundsDir: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("Ponto", isDirectory: true)
+    }
+
+    /// Onde está a cópia do seu arquivo, se houver.
+    static var customFileURL: URL? {
+        let name = Prefs.d.string(forKey: Prefs.Key.soundFile) ?? ""
+        guard !name.isEmpty, let dir = soundsDir else { return nil }
+        let url = dir.appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// Guarda uma cópia do arquivo na pasta do Ponto e passa a usar ele no alerta.
+    /// A cópia garante que o som continua funcionando se você mover ou apagar o original.
+    /// Devolve false se o Mac não conseguir tocar o arquivo.
+    static func importCustom(from url: URL) -> Bool {
+        guard NSSound(contentsOf: url, byReference: true) != nil, let dir = soundsDir else {
+            return false
+        }
+        let fm = FileManager.default
+        let ext = url.pathExtension.isEmpty ? "mp3" : url.pathExtension.lowercased()
+        let name = "alerta-\(Int(Date().timeIntervalSince1970)).\(ext)"
+        do {
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            try fm.copyItem(at: url, to: dir.appendingPathComponent(name))
+        } catch {
+            return false
+        }
+
+        stopAlert()
+        let old = Prefs.d.string(forKey: Prefs.Key.soundFile) ?? ""
+        if !old.isEmpty, old != name {
+            try? fm.removeItem(at: dir.appendingPathComponent(old))
+        }
+        Prefs.d.set(name, forKey: Prefs.Key.soundFile)
+        Prefs.d.set(url.lastPathComponent, forKey: Prefs.Key.soundFileLabel)
+        Prefs.d.set(customTag, forKey: Prefs.Key.soundName)
+        return true
     }
 
     /// Sons do sistema disponíveis neste Mac.
@@ -55,6 +159,7 @@ final class Engine: ObservableObject {
     private(set) var lockShownAt: Date? = nil
     private var timer: Timer?
     private var lastSound = Date.distantPast
+    private var alertSounding = false
     private var lastPrimary = Date.distantPast
     private var lastCallSeen = Date.distantPast
     private var previewAsNotice = false
@@ -192,6 +297,12 @@ final class Engine: ObservableObject {
         if newNotice != noticeKind { noticeKind = newNotice }
         if waiting != waitingForCall { waitingForCall = waiting }
 
+        // Respondeu: o som do alerta para na hora, mesmo no meio de uma música.
+        if newLock == nil && newNotice == nil && alertSounding {
+            alertSounding = false
+            Alarm.stopAlert()
+        }
+
         // Som: toca quando o alerta aparece e, se você quiser, insiste.
         // Em chamada fica mudo. Só insiste se tiver alguém no Mac.
         if (newLock != nil || newNotice != nil) && !quiet {
@@ -231,7 +342,10 @@ final class Engine: ObservableObject {
 
     private func ring(at n: Date) {
         lastSound = n
-        if Prefs.soundOn { Alarm.play() }
+        if Prefs.soundOn {
+            alertSounding = true
+            Alarm.playAlert()
+        }
     }
 
     private var idleSeconds: TimeInterval {

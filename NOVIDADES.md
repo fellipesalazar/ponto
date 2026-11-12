@@ -1,3 +1,2 @@
-- Jornada sem almoço: desligue "Tem intervalo de almoço" e o Ponto cobra só a entrada e a saída.
-- Você escolhe se a duração real do almoço muda a hora da saída ou se a saída é fixa.
-- A duração da jornada continua livre, de 1h a 12h.
+- Som personalizado: em Ajustes > Alertas, escolha um MP3 (ou M4A, WAV, AIFF) pro alerta.
+- O som do alerta para na hora em que você responde, mesmo no meio de uma música.
