@@ -1,0 +1,4 @@
+#!/bin/sh
+# Fecha o Ponto antes de trocar o app.
+/usr/bin/pkill -x Ponto 2>/dev/null
+exit 0

@@ -1,0 +1,64 @@
+name: Compilar e publicar
+
+# A cada mudança no código, compila o Ponto num Mac do GitHub e publica
+# o instalador e o arquivo de atualização na versão que está no Info.plist.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Sources/**"
+      - "Info.plist"
+      - "NOVIDADES.md"
+      - "tools/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: compilar
+  cancel-in-progress: true
+
+jobs:
+  compilar:
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compilar
+        run: |
+          set -o pipefail
+          bash tools/build.sh 2>&1 | tee build.log
+
+      - name: Publicar a versão
+        run: |
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Info.plist)"
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/Ponto.pkg dist/Ponto.zip --clobber
+            gh release edit "$TAG" --notes-file NOVIDADES.md
+          else
+            gh release create "$TAG" dist/Ponto.pkg dist/Ponto.zip --title "Ponto $VERSION" --notes-file NOVIDADES.md
+          fi
+          # Deu certo: fecha avisos de falha que ficaram abertos.
+          gh issue list --state open --search "Compilação falhou in:title" --json number --jq '.[].number' | while read -r n; do
+            gh issue close "$n" --comment "Compilou na versão $VERSION."
+          done
+
+      - name: Avisar se falhou
+        if: failure()
+        run: |
+          {
+            echo "A compilação automática falhou no commit ${GITHUB_SHA}."
+            echo
+            echo '```'
+            tail -c 50000 build.log 2>/dev/null || echo "(sem log)"
+            echo '```'
+          } > corpo.md
+          gh issue create --title "Compilação falhou (${GITHUB_SHA:0:7})" --body-file corpo.md
