@@ -1,2 +1,3 @@
-- A atualização automática agora funciona de verdade: o instalador deixa o app no seu nome, e se faltar permissão o Ponto pede a senha do Mac em vez de desistir.
+- Você escolhe quanto tempo o Ponto espera a confirmação depois de Bater agora (Ajustes > Alertas).
+- A atualização automática agora funciona depois do instalador, e pede a senha do Mac se faltar permissão.
 - Atalhos mais simples: ⌃⌥P bate ou confirma, ⌃⌥M abre o painel. Dá pra trocar em Ajustes > Atalhos.

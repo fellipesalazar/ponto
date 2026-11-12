@@ -13,6 +13,7 @@ enum Prefs {
         static let daysOff = "daysOff"
 
         static let alertStyle = "alertStyle"
+        static let confirmSeconds = "confirmSeconds"
         static let callMode = "callMode"
 
         static let soundOn = "soundOn"
@@ -48,6 +49,7 @@ enum Prefs {
             Key.workdays: "2,3,4,5,6",
             Key.daysOff: "",
             Key.alertStyle: "lock",
+            Key.confirmSeconds: 120,
             Key.callMode: "notice",
             Key.soundOn: true,
             Key.soundName: "Glass",
@@ -102,6 +104,9 @@ enum Prefs {
     static var alertStyle: String { d.string(forKey: Key.alertStyle) ?? "lock" }
     /// Em chamada: "notice" mostra o aviso, "wait" espera, "lock" trava mesmo assim.
     static var callMode: String { d.string(forKey: Key.callMode) ?? "notice" }
+
+    /// Quanto tempo o "Bateu?" espera antes de o alerta voltar.
+    static var confirmSeconds: Int { max(15, d.integer(forKey: Key.confirmSeconds)) }
 
     static var soundOn: Bool { d.bool(forKey: Key.soundOn) }
     static var soundName: String { d.string(forKey: Key.soundName) ?? "Glass" }

@@ -361,6 +361,7 @@ struct AlertasPane: View {
     @EnvironmentObject var engine: Engine
     @AppStorage(Prefs.Key.alertStyle) private var alertStyle = "lock"
     @AppStorage(Prefs.Key.callMode) private var callMode = "notice"
+    @AppStorage(Prefs.Key.confirmSeconds) private var confirmSeconds = 120
     @AppStorage(Prefs.Key.soundOn) private var soundOn = true
     @AppStorage(Prefs.Key.soundName) private var soundName = "Glass"
     @AppStorage(Prefs.Key.soundVolume) private var volume = 0.8
@@ -382,6 +383,13 @@ struct AlertasPane: View {
                     Text("Travar mesmo assim").tag("lock")
                 }
                 .disabled(alertStyle != "lock")
+                Picker("Tempo pra confirmar que bateu", selection: $confirmSeconds) {
+                    Text("30 segundos").tag(30)
+                    Text("1 minuto").tag(60)
+                    Text("2 minutos").tag(120)
+                    Text("5 minutos").tag(300)
+                    Text("10 minutos").tag(600)
+                }
                 HStack {
                     Button("Testar a trava") {
                         engine.testLock()
@@ -391,7 +399,7 @@ struct AlertasPane: View {
                     }
                 }
             } footer: {
-                Text("O aviso no canto não some até você responder, mas deixa você continuar usando o Mac. O Ponto entende que você está em chamada quando o microfone está em uso. Quando a chamada acaba, a trava aparece.")
+                Text("O aviso no canto não some até você responder, mas deixa você continuar usando o Mac. Depois de Bater agora, se você não confirmar dentro do tempo escolhido, o alerta volta. O Ponto entende que você está em chamada quando o microfone está em uso. Quando a chamada acaba, a trava aparece.")
             }
 
             Section("Som") {

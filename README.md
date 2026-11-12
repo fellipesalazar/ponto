@@ -22,7 +22,7 @@ Não precisa fazer nada. O Ponto procura versão nova sozinho e pergunta se voc�
 - **Volta:** cobra quando o almoço completa a duração configurada.
 - **Saída:** cobra quando a jornada fecha, pela hora real da entrada e do almoço.
 
-**Bater agora** abre a página do ponto e espera você confirmar. Se você não confirmar em 2 minutos, o alerta volta. O Ponto não bate o ponto por você: ele registra o que você confirma.
+**Bater agora** abre a página do ponto e espera você confirmar. Se você não confirmar em 2 minutos, o alerta volta (dá pra mudar esse tempo em Ajustes > Alertas). O Ponto não bate o ponto por você: ele registra o que você confirma.
 
 Em chamada (microfone em uso), a trava vira um aviso discreto no canto e só volta quando a chamada acaba.
 

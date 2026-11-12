@@ -30,8 +30,6 @@ enum Alarm {
 final class Engine: ObservableObject {
     static let shared = Engine()
 
-    /// Segundos sem resposta até o painel "Bateu?" desistir.
-    static let confirmTimeout: TimeInterval = 120
     /// O dia do app vira às 4h, pra quem passa da meia-noite trabalhando.
     static let virada: TimeInterval = 4 * 3600
     /// Tempo em que a trava ignora teclas e cliques depois de aparecer.
@@ -432,14 +430,14 @@ final class Engine: ObservableObject {
             preview = nil
             previewConfirm = true
             awaitingConfirm = tested
-            confirmDeadline = Date().addingTimeInterval(Engine.confirmTimeout)
+            confirmDeadline = Date().addingTimeInterval(TimeInterval(Prefs.confirmSeconds))
             openPonto()
             tick()
             return
         }
         guard let k = kind ?? record.nextKind else { return }
         awaitingConfirm = k
-        confirmDeadline = Date().addingTimeInterval(Engine.confirmTimeout)
+        confirmDeadline = Date().addingTimeInterval(TimeInterval(Prefs.confirmSeconds))
         openPonto()
         tick()
     }
