@@ -101,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        if record.time(of: .saidaAlmoco) == nil && record.phase != .encerrado {
+        if Prefs.lunchEnabled && record.time(of: .saidaAlmoco) == nil && record.phase != .encerrado {
             let lunch = addDockItem(menu, "Hoje sem almoço", #selector(dockToggleNoLunch))
             lunch.state = record.noLunch ? .on : .off
         }

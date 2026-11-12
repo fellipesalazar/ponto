@@ -162,6 +162,8 @@ struct JornadaPane: View {
     @AppStorage(Prefs.Key.lunchDuration) private var lunchDuration = 60
     @AppStorage(Prefs.Key.work) private var work = 480
     @AppStorage(Prefs.Key.workdays) private var workdays = "2,3,4,5,6"
+    @AppStorage(Prefs.Key.lunchEnabled) private var lunchEnabled = true
+    @AppStorage(Prefs.Key.lunchAdjustsExit) private var lunchAdjustsExit = true
 
     // Segunda a domingo, com o número de cada dia no calendário (1 = domingo).
     private let days: [Weekday] = [
@@ -175,17 +177,28 @@ struct JornadaPane: View {
         Form {
             Section {
                 DatePicker("Entrada", selection: minutesBinding($entry), displayedComponents: .hourAndMinute)
-                DatePicker("Almoço a partir de", selection: minutesBinding($lunchStart), displayedComponents: .hourAndMinute)
-                Stepper(value: $lunchDuration, in: 15...180, step: 15) {
-                    LabeledContent("Duração do almoço", value: Fmt.minutos(lunchDuration))
-                }
                 Stepper(value: $work, in: 60...720, step: 15) {
-                    LabeledContent("Trabalho por dia", value: Fmt.minutos(work))
+                    LabeledContent("Duração da jornada", value: Fmt.minutos(work))
                 }
             } header: {
-                Text("Horário padrão")
+                Text("Jornada")
             } footer: {
-                Text("Com esses horários, a saída fica às \(saidaPadrao). Nos dias em que você entrar ou almoçar em outro horário, a saída acompanha.")
+                Text("A duração é o tempo trabalhado, sem contar o almoço. Com esses ajustes, a saída fica às \(saidaPadrao).")
+            }
+
+            Section {
+                Toggle("Tem intervalo de almoço", isOn: $lunchEnabled)
+                if lunchEnabled {
+                    DatePicker("Almoço a partir de", selection: minutesBinding($lunchStart), displayedComponents: .hourAndMinute)
+                    Stepper(value: $lunchDuration, in: 15...180, step: 15) {
+                        LabeledContent("Duração do almoço", value: Fmt.minutos(lunchDuration))
+                    }
+                    Toggle("Ajustar a saída pela duração real do almoço", isOn: $lunchAdjustsExit)
+                }
+            } header: {
+                Text("Almoço")
+            } footer: {
+                Text(lunchFooter)
             }
 
             Section("Dias de trabalho") {
@@ -201,8 +214,18 @@ struct JornadaPane: View {
     }
 
     private var saidaPadrao: String {
-        let total = entry + work + lunchDuration
+        let total = entry + work + (lunchEnabled ? lunchDuration : 0)
         return String(format: "%02d:%02d", (total / 60) % 24, total % 60)
+    }
+
+    private var lunchFooter: String {
+        if !lunchEnabled {
+            return "Sem almoço, o Ponto cobra só a entrada e a saída."
+        }
+        if lunchAdjustsExit {
+            return "Ligado: se o almoço durar mais ou menos que o padrão, a hora da saída muda junto, pra fechar a jornada."
+        }
+        return "Desligado: a saída é sempre a entrada mais a jornada e o almoço padrão, não importa quanto o almoço durou."
     }
 
     private func dayBinding(_ number: Int) -> Binding<Bool> {
@@ -335,10 +358,12 @@ struct HojePane: View {
                     get: { engine.record.dayOff },
                     set: { engine.setDayOff($0) }
                 ))
-                Toggle("Hoje sem almoço", isOn: Binding(
-                    get: { engine.record.noLunch },
-                    set: { engine.setNoLunch($0) }
-                ))
+                if Prefs.lunchEnabled {
+                    Toggle("Hoje sem almoço", isOn: Binding(
+                        get: { engine.record.noLunch },
+                        set: { engine.setNoLunch($0) }
+                    ))
+                }
             }
         }
         .formStyle(.grouped)

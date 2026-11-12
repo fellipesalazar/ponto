@@ -1,3 +1,3 @@
-- Você escolhe quanto tempo o Ponto espera a confirmação depois de Bater agora (Ajustes > Alertas).
-- A atualização automática agora funciona depois do instalador, e pede a senha do Mac se faltar permissão.
-- Atalhos mais simples: ⌃⌥P bate ou confirma, ⌃⌥M abre o painel. Dá pra trocar em Ajustes > Atalhos.
+- Jornada sem almoço: desligue "Tem intervalo de almoço" e o Ponto cobra só a entrada e a saída.
+- Você escolhe se a duração real do almoço muda a hora da saída ou se a saída é fixa.
+- A duração da jornada continua livre, de 1h a 12h.

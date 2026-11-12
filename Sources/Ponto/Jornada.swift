@@ -66,6 +66,9 @@ struct Rules {
     var lunchStartMinutes: Int
     var lunchDurationMinutes: Int
     var workMinutes: Int
+    /// Ligado: almoço mais longo ou mais curto muda a hora da saída.
+    /// Desligado: a saída é sempre entrada + jornada + almoço padrão.
+    var lunchAdjustsExit: Bool = true
 }
 
 struct DayRecord: Codable, Equatable {
@@ -74,6 +77,8 @@ struct DayRecord: Codable, Equatable {
     var snoozeUntil: Date? = nil
     var dayOff: Bool = false
     var noLunch: Bool = false
+    /// O "sem almoço" veio do ajuste da jornada, não de uma escolha só de hoje.
+    var noLunchAuto: Bool? = nil
 
     func time(of kind: PunchKind) -> Date? {
         punches.first(where: { $0.kind == kind })?.time
@@ -137,6 +142,10 @@ struct DayRecord: Codable, Equatable {
             guard let s = time(of: .saidaAlmoco) else { return nil }
             return s.addingTimeInterval(TimeInterval(rules.lunchDurationMinutes * 60))
         case .saida:
+            if !rules.lunchAdjustsExit, let e = time(of: .entrada), time(of: .saidaAlmoco) != nil {
+                // Saída fixa: não importa quanto o almoço durou de verdade.
+                return e.addingTimeInterval(TimeInterval((rules.workMinutes + rules.lunchDurationMinutes) * 60))
+            }
             guard let inicio = punches.last?.time else { return nil }
             let feito = worked(until: inicio)
             let falta = max(0, TimeInterval(rules.workMinutes * 60) - feito)

@@ -102,7 +102,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        if record.time(of: .saidaAlmoco) == nil && record.phase != .encerrado {
+        if Prefs.lunchEnabled && record.time(of: .saidaAlmoco) == nil && record.phase != .encerrado {
             let l = add("Hoje sem almoço", #selector(toggleNoLunch))
             l.state = record.noLunch ? .on : .off
         }

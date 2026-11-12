@@ -10,6 +10,8 @@ enum Prefs {
         static let lunchDuration = "lunchDurationMinutes"
         static let work = "workMinutes"
         static let workdays = "workdays"
+        static let lunchEnabled = "lunchEnabled"
+        static let lunchAdjustsExit = "lunchAdjustsExit"
         static let daysOff = "daysOff"
 
         static let alertStyle = "alertStyle"
@@ -47,6 +49,8 @@ enum Prefs {
             Key.lunchDuration: 60,
             Key.work: 8 * 60,
             Key.workdays: "2,3,4,5,6",
+            Key.lunchEnabled: true,
+            Key.lunchAdjustsExit: true,
             Key.daysOff: "",
             Key.alertStyle: "lock",
             Key.confirmSeconds: 120,
@@ -70,7 +74,8 @@ enum Prefs {
             entryMinutes: d.integer(forKey: Key.entry),
             lunchStartMinutes: d.integer(forKey: Key.lunchStart),
             lunchDurationMinutes: d.integer(forKey: Key.lunchDuration),
-            workMinutes: d.integer(forKey: Key.work)
+            workMinutes: d.integer(forKey: Key.work),
+            lunchAdjustsExit: d.bool(forKey: Key.lunchAdjustsExit)
         )
     }
 
@@ -86,6 +91,9 @@ enum Prefs {
     static var workdays: Set<Int> {
         parseWorkdays(d.string(forKey: Key.workdays) ?? "")
     }
+
+    /// A jornada tem intervalo de almoço.
+    static var lunchEnabled: Bool { d.bool(forKey: Key.lunchEnabled) }
 
     /// Folgas e feriados marcados, como "2026-11-20".
     static func parseDaysOff(_ s: String) -> Set<String> {

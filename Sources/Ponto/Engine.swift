@@ -141,6 +141,8 @@ final class Engine: ObservableObject {
         now = n
         rollDayIfNeeded(n)
 
+        syncLunchSetting()
+
         if let deadline = confirmDeadline, n >= deadline {
             awaitingConfirm = nil
             confirmDeadline = nil
@@ -208,6 +210,23 @@ final class Engine: ObservableObject {
     private func inCall(_ n: Date) -> Bool {
         if CallDetector.micInUse { lastCallSeen = n }
         return n.timeIntervalSince(lastCallSeen) < 8
+    }
+
+    /// Jornada sem almoço nos ajustes: todo dia já começa como "sem almoço".
+    private func syncLunchSetting() {
+        if !Prefs.lunchEnabled {
+            if !record.noLunch && record.time(of: .saidaAlmoco) == nil {
+                var r = record
+                r.noLunch = true
+                r.noLunchAuto = true
+                record = r
+            }
+        } else if record.noLunchAuto == true {
+            var r = record
+            r.noLunch = false
+            r.noLunchAuto = nil
+            record = r
+        }
     }
 
     private func ring(at n: Date) {
@@ -279,6 +298,13 @@ final class Engine: ObservableObject {
     }
 
     var predictedExit: Date? {
+        let rules = Prefs.rules
+        if !rules.lunchAdjustsExit, record.phase == .trabalhando || record.phase == .almoco,
+           let e = record.time(of: .entrada) {
+            // Saída fixa: entrada + jornada + almoço padrão (se o dia tiver almoço).
+            let lunch = record.noLunch ? 0 : rules.lunchDurationMinutes
+            return e.addingTimeInterval(TimeInterval((rules.workMinutes + lunch) * 60))
+        }
         switch record.phase {
         case .antes, .encerrado:
             return nil
@@ -506,8 +532,11 @@ final class Engine: ObservableObject {
     }
 
     func setNoLunch(_ on: Bool) {
-        record.noLunch = on
-        record.snoozeUntil = nil
+        var r = record
+        r.noLunch = on
+        r.noLunchAuto = nil
+        r.snoozeUntil = nil
+        record = r
         tick()
     }
 
