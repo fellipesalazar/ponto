@@ -1,7 +1,9 @@
 #!/bin/sh
-# Abre o Ponto pra quem está usando o Mac, assim que a instalação termina.
+# Deixa o app no nome de quem está usando o Mac, pra ele conseguir se atualizar
+# sozinho depois, e abre o Ponto assim que a instalação termina.
 USUARIO="$(/usr/bin/stat -f%Su /dev/console)"
 if [ -n "$USUARIO" ] && [ "$USUARIO" != "root" ]; then
+    /usr/sbin/chown -R "$USUARIO" /Applications/Ponto.app 2>/dev/null
     ID="$(/usr/bin/id -u "$USUARIO")"
     /bin/launchctl asuser "$ID" /usr/bin/sudo -u "$USUARIO" /usr/bin/open /Applications/Ponto.app 2>/dev/null
 fi

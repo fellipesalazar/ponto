@@ -1,2 +1,2 @@
-- Atalhos mais simples: ⌃⌥P bate ou confirma, ⌃⌥M abre o painel.
-- Você escolhe seus próprios atalhos em Ajustes > Atalhos: clique no atalho e aperte a combinação nova.
+- A atualização automática agora funciona de verdade: o instalador deixa o app no seu nome, e se faltar permissão o Ponto pede a senha do Mac em vez de desistir.
+- Atalhos mais simples: ⌃⌥P bate ou confirma, ⌃⌥M abre o painel. Dá pra trocar em Ajustes > Atalhos.

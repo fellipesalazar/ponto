@@ -179,57 +179,127 @@ final class Updater {
 
     // MARK: - Instalar
 
+    private enum Outcome {
+        case done
+        /// O app novo está pronto, mas trocar pede a senha do Mac.
+        case needsPassword(newApp: URL, work: URL)
+        case failed(String)
+    }
+
     private func install(_ release: Release) {
         guard !installing else { return }
         installing = true
         onChange?()
 
         let task = URLSession.shared.downloadTask(with: release.zipURL) { [weak self] location, _, _ in
-            var problem: String? = "Não consegui baixar a atualização."
+            var outcome = Outcome.failed("Não consegui baixar a atualização.")
             if let location = location {
-                problem = Updater.apply(zipAt: location, expected: release.version)
+                outcome = Updater.apply(zipAt: location, expected: release.version)
             }
             DispatchQueue.main.async {
-                self?.finishInstall(problem, release)
+                self?.finishInstall(outcome, release)
             }
         }
         task.resume()
     }
 
-    /// Abre o zip baixado e troca o app. Devolve nil se deu certo, ou o que deu errado.
-    private static func apply(zipAt location: URL, expected: String) -> String? {
+    /// Abre o zip baixado e tenta trocar o app.
+    private static func apply(zipAt location: URL, expected: String) -> Outcome {
         let fm = FileManager.default
         let current = Bundle.main.bundleURL
+        let work: URL
         do {
             // Pasta temporária no mesmo disco do app, pra troca ser de uma vez só.
-            let work = try fm.url(for: .itemReplacementDirectory, in: .userDomainMask,
-                                  appropriateFor: current, create: true)
-            defer { try? fm.removeItem(at: work) }
-
-            let unzip = Process()
-            unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-            unzip.arguments = ["-x", "-k", location.path, work.path]
-            try unzip.run()
-            unzip.waitUntilExit()
-            guard unzip.terminationStatus == 0 else {
-                return "Não consegui abrir o arquivo da atualização."
-            }
-
-            let newApp = work.appendingPathComponent("Ponto.app")
-            guard let bundle = Bundle(url: newApp),
-                  bundle.bundleIdentifier == Bundle.main.bundleIdentifier,
-                  (bundle.infoDictionary?["CFBundleShortVersionString"] as? String) == expected else {
-                return "O arquivo baixado não é o Ponto \(expected)."
-            }
-
-            _ = try fm.replaceItemAt(current, withItemAt: newApp)
-            return nil
+            work = try fm.url(for: .itemReplacementDirectory, in: .userDomainMask,
+                              appropriateFor: current, create: true)
         } catch {
-            return "Não consegui trocar o app: \(error.localizedDescription)"
+            return .failed("Não consegui preparar a atualização: \(error.localizedDescription)")
+        }
+
+        let unzip = Process()
+        unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        unzip.arguments = ["-x", "-k", location.path, work.path]
+        do {
+            try unzip.run()
+        } catch {
+            try? fm.removeItem(at: work)
+            return .failed("Não consegui abrir o arquivo da atualização.")
+        }
+        unzip.waitUntilExit()
+        guard unzip.terminationStatus == 0 else {
+            try? fm.removeItem(at: work)
+            return .failed("Não consegui abrir o arquivo da atualização.")
+        }
+
+        let newApp = work.appendingPathComponent("Ponto.app")
+        guard let bundle = Bundle(url: newApp),
+              bundle.bundleIdentifier == Bundle.main.bundleIdentifier,
+              (bundle.infoDictionary?["CFBundleShortVersionString"] as? String) == expected else {
+            try? fm.removeItem(at: work)
+            return .failed("O arquivo baixado não é o Ponto \(expected).")
+        }
+
+        do {
+            _ = try fm.replaceItemAt(current, withItemAt: newApp)
+            try? fm.removeItem(at: work)
+            return .done
+        } catch {
+            // Sem permissão pra mexer na pasta: dá pra trocar com a senha do Mac.
+            if fm.fileExists(atPath: newApp.path) {
+                return .needsPassword(newApp: newApp, work: work)
+            }
+            try? fm.removeItem(at: work)
+            return .failed("Não consegui trocar o app: \(error.localizedDescription)")
         }
     }
 
-    private func finishInstall(_ problem: String?, _ release: Release) {
+    /// Troca o app pedindo a senha do Mac, na janela padrão do sistema.
+    /// Devolve nil se deu certo, ou o que deu errado.
+    private static func replaceWithPassword(newApp: URL) -> String? {
+        let current = Bundle.main.bundleURL.path
+        let command = "/bin/rm -rf \(shellQuote(current))"
+            + " && /usr/bin/ditto \(shellQuote(newApp.path)) \(shellQuote(current))"
+            + " && /usr/sbin/chown -R \(getuid()) \(shellQuote(current))"
+        let source = "do shell script \"\(appleScriptEscape(command))\" with administrator privileges"
+
+        guard let script = NSAppleScript(source: source) else {
+            return "Não consegui pedir a senha do Mac."
+        }
+        var error: NSDictionary?
+        script.executeAndReturnError(&error)
+        if let error = error {
+            let number = (error[NSAppleScript.errorNumber] as? Int) ?? 0
+            if number == -128 {
+                return "Você cancelou o pedido de senha."
+            }
+            let message = (error[NSAppleScript.errorMessage] as? String) ?? "erro \(number)"
+            return "Não consegui trocar o app: \(message)"
+        }
+        return nil
+    }
+
+    private static func shellQuote(_ text: String) -> String {
+        "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    private static func appleScriptEscape(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+    }
+
+    private func finishInstall(_ outcome: Outcome, _ release: Release) {
+        var problem: String? = nil
+
+        switch outcome {
+        case .done:
+            break
+        case .failed(let message):
+            problem = message
+        case .needsPassword(let newApp, let work):
+            problem = Updater.replaceWithPassword(newApp: newApp)
+            try? FileManager.default.removeItem(at: work)
+        }
+
         installing = false
         onChange?()
 
